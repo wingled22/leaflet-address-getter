@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My First Map</title>
+    <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+    <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.css">
+
+    <!--    css for geocode-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+
+    <style>
+        .example-container {
+            background: white;
+            width: 600px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: helvetica;
+            font-size: 16px;
+            padding: 1.5em;
+            -webkit-box-shadow: 1px 5px 5px 0px rgba(0,0,0,0.15);
+            -moz-box-shadow: 1px 5px 5px 0px rgba(0,0,0,0.15);
+            box-shadow: 1px 5px 5px 0px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        }
+
+        .example-container * {
+            box-sizing: inherit;
+            font-size: inherit;
+        }
+
+        .example-container .header {
+            margin: 1em 0;
+        }
+
+        .example-container #MapLocation {
+            margin-bottom: 0.75em;
+        }
+
+        .example-container input {
+            width: 100%;
+            margin: 0.5em 0;
+            padding: 0.5em;
+            border: 1px solid #569ae3;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="example-container">
+        <div class="row">
+          <section class="col col-12 header">Address</section>
+          <section class="col col-12">
+            <div class="row">
+              <section class="col col-12">
+                <div id="MapLocation" style="height: 350px"></div>
+              </section>
+            </div>
+          </section>
+        </div>
+    </div>
+
+
+</body> 
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="lib/leaflet/jquery-3.5.1.js"></script>
+
+<!--js file for geocode-->
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+
+<script>
+    var myMap;
+    var lyrOSM;  
+    var marker;  
+    var displayName;
+    var locationLatLng;
+    $(document).ready(function () {
+
+        var curLocation =  [11.0530536, 124.0110354];
+
+        // create map object 
+        myMap = L.map('MapLocation').setView(curLocation, 10);
+
+        var mapLocationDisplayPopup = L.popup();
+
+        //add basemap layer
+        lyrOSM = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png'); 
+        myMap.addLayer(lyrOSM);
+        
+
+        var geocoder = L.Control.geocoder({
+            defaultMarkGeocode: false
+        })
+        .on('markgeocode', function(e) {
+            var latlng = e.geocode.center;
+            if (marker != undefined) {
+                myMap.removeLayer(marker);
+                marker = null;
+                locationLatLng = null;
+            }
+            var p = new Promise(function(resolve, reject){
+                $.ajax({
+                    url: "https://nominatim.openstreetmap.org/reverse?format=json&lat="+ latlng.lat +"&lon=" + latlng.lng,
+                    success: function (data) {
+                        resolve(data)
+                    },
+                    error: function (data) {
+                        reject(data)
+                    }
+                });
+            });
+            p.then((data)=>{
+                console.log(data);
+                marker = L.marker(latlng).addTo(myMap);  
+                displayName = data.display_name;
+                locationLatLng = latlng;
+                mapLocationDisplayPopup.setLatLng(latlng).setContent(displayName).openOn(myMap);
+            }).catch((err)=>{
+                console.table(err);
+            });
+
+            console.log(latlng);
+            myMap.fitBounds(e.geocode.bbox);
+        })
+        .addTo(myMap);
+
+        myMap.on('click',function(e){
+            // console.log(e); 
+            if (marker != undefined) {
+                myMap.removeLayer(marker);
+                marker = null;
+                locationLatLng = null;
+            }else{
+                console.log("no marker");
+            }
+            var p = new Promise(function(resolve, reject){
+                $.ajax({
+                    url: "https://nominatim.openstreetmap.org/reverse?format=json&lat="+ e.latlng.lat +"&lon=" + e.latlng.lng,
+                    success: function (data) {
+                        resolve(data)
+                    },
+                    error: function (data) {
+                        reject(data)
+                    }
+                });
+            });
+
+            p.then((data)=>{
+                console.log(data);
+                marker = L.marker(e.latlng).addTo(myMap);  
+                displayName = data.display_name;
+                locationLatLng = e.latlng;
+                mapLocationDisplayPopup.setLatLng(e.latlng).setContent(displayName).openOn(myMap);
+            }).catch((err)=>{
+                console.table(err);
+            });
+
+           
+        })
+    
+    });
+
+</script>
+<!-- <script src="js/source_code.js"></script> -->
+
+
+</html>
